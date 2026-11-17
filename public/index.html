@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GRAFTHOLDERS — Proposal Generator</title>
+<style>
+:root{font-family:Inter,Arial,sans-serif;color:#18302c;background:#f2f4ef}*{box-sizing:border-box}body{margin:0}header{padding:25px 5%;background:#153e35;color:white;display:flex;justify-content:space-between;align-items:center}header small{color:#bfd7c3}main{max-width:1250px;margin:auto;padding:32px 24px;display:grid;grid-template-columns:360px 1fr;gap:28px}h1{font-size:28px;margin:0 0 10px}h2{font-size:18px}label{display:block;font-size:13px;font-weight:bold;margin:16px 0 6px}input,textarea{width:100%;padding:10px;border:1px solid #cad3ca;border-radius:6px;font:inherit;background:white}textarea{min-height:85px;resize:vertical}button{border:0;border-radius:6px;background:#d9ec80;color:#153e35;padding:11px 15px;font:inherit;cursor:pointer;font-weight:bold}button.secondary{background:#e2e9e0}button.remove{background:#fbe5e1;padding:8px}.panel,.paper{background:white;padding:26px;border-radius:12px;box-shadow:0 3px 16px #17382b09}.panel{align-self:start}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:22px}.paper{padding:42px;min-width:0}.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#5b7166}.paper h1{font-size:36px;margin:20px 0}.meta{display:flex;justify-content:space-between;gap:16px;border-bottom:1px solid #dee5da;padding-bottom:22px}.copy{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}table{width:100%;border-collapse:collapse;margin-top:28px}th,td{text-align:left;border-bottom:1px solid #e4e9e0;padding:10px 4px;font-size:13px}td input{padding:8px;width:100%;min-width:0}th:nth-child(2){width:65px}th:nth-child(3){width:100px}th:last-child{width:40px}.totals{margin:25px 0 30px auto;max-width:290px}.totals p{display:flex;justify-content:space-between}.grand{font-size:22px;font-weight:bold;border-top:2px solid #153e35;padding-top:15px}footer{margin-top:40px;font-size:12px;color:#64766b}#status{font-size:13px;min-height:20px;margin-top:14px}.print-only{display:none}@media(max-width:850px){main{grid-template-columns:1fr}.paper{padding:24px}header{gap:15px}header small{display:none}}@media print{body{background:white}header,.panel,.no-print{display:none!important}main{display:block;padding:0;max-width:none}.paper{box-shadow:none;padding:10mm;border-radius:0}.print-only{display:block}td input{border:0;padding:0}table{break-inside:auto}tr{break-inside:avoid}.totals{break-inside:avoid}@page{size:A4;margin:10mm}}
+</style></head><body>
+<header><strong>GRAFTHOLDERS<span style="color:#d9ec80"> / </span>Proposal Studio</strong><small>Dalle idee alla prossima collaborazione.</small></header>
+<main><section class="panel no-print"><div class="eyebrow">Nuova proposta</div><h2>Costruisci il tuo preventivo</h2>
+<label for="sender">Mittente e recapiti</label><textarea id="sender">GRAFTHOLDERS</textarea>
+<label for="client">Cliente e recapiti</label><textarea id="client" placeholder="Ragione sociale, referente, indirizzo"></textarea>
+<label for="title">Titolo progetto</label><input id="title" value="Proposta di collaborazione">
+<label for="number">Numero proposta</label><input id="number" value="PROP-001">
+<label for="date">Data</label><input id="date" type="date">
+<label for="valid">Validità (giorni)</label><input id="valid" type="number" min="1" max="365" value="30">
+<label for="summary">Obiettivi e ambito</label><textarea id="summary" placeholder="Descrivi obiettivi, attività e risultati attesi."></textarea>
+<label for="vat">IVA (%)</label><input id="vat" type="number" min="0" max="100" step="0.1" value="22">
+<label for="terms">Tempistiche e condizioni</label><textarea id="terms" placeholder="Consegne, modalità di pagamento ed eventuali esclusioni."></textarea>
+<div class="actions"><button id="save">Salva bozza</button><button id="print">Stampa / PDF</button><button id="export" class="secondary">Esporta JSON</button><button id="reset" class="secondary">Nuova proposta</button></div><p id="status" role="status" aria-live="polite"></p><footer>Le bozze restano in questo browser. Esporta una copia per conservarle o trasferirle.</footer></section>
+<article class="paper"><div class="eyebrow">GRAFTHOLDERS · Proposta commerciale</div><h1 id="out-title"></h1><div class="meta"><div><small>PREPARATA PER</small><p id="out-client" class="copy"></p></div><div><p id="out-number"></p><p id="out-date"></p><p id="out-valid"></p></div></div><h2>Il progetto</h2><p id="out-summary" class="copy"></p><h2>Investimento</h2><table><thead><tr><th>Attività</th><th>Quantità</th><th>Prezzo €</th><th>Importo</th><th class="no-print"></th></tr></thead><tbody id="items"></tbody></table><button id="add" class="secondary no-print" style="margin-top:14px">+ Aggiungi attività</button><div class="totals"><p>Imponibile <span id="subtotal"></span></p><p>IVA <span id="tax"></span></p><p class="grand">Totale <span id="total"></span></p></div><h2>Tempistiche e condizioni</h2><p id="out-terms" class="copy"></p><footer><p id="out-sender" class="copy"></p></footer></article></main>
+<script>
+'use strict';
+const fields=['sender','client','title','number','date','valid','summary','vat','terms'];
+const el=id=>document.getElementById(id);
+const euro=n=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n);
+const safeNumber=(v,max=10000000)=>Math.min(max,Math.max(0,Number(v)||0));
+const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
+let rows=[{description:'Consulenza e progettazione',quantity:1,price:0}];
+el('date').value=today();
+function totals(items,vat){const subtotal=items.reduce((sum,r)=>sum+Math.round(safeNumber(r.quantity)*safeNumber(r.price)*100),0);const tax=Math.round(subtotal*safeNumber(vat,100)/100);return {subtotal:subtotal/100,tax:tax/100,total:(subtotal+tax)/100}}
+function render(){
+ for(const id of ['sender','client','title','number','summary','terms']) el('out-'+id).textContent=el(id).value||({client:'Nome cliente',summary:'Descrivi il progetto nel pannello a sinistra.',terms:'Da concordare.'}[id]||'');
+ const d=el('date').value;el('out-date').textContent=d?'Data: '+d.split('-').reverse().join('/'):'';
+ el('out-valid').textContent='Validità: '+safeNumber(el('valid').value,365)+' giorni';
+ const t=totals(rows,el('vat').value);for(const k of ['subtotal','tax','total']) el(k).textContent=euro(t[k]);
+ document.querySelectorAll('[data-amount]').forEach((e,i)=>e.textContent=euro(Math.round(safeNumber(rows[i].quantity)*safeNumber(rows[i].price)*100)/100));
+}
+function renderRows(){
+ el('items').replaceChildren();
+ rows.forEach((r,i)=>{
+ const tr=document.createElement('tr');
+ for(const key of ['description','quantity','price']){
+ const td=document.createElement('td'),input=document.createElement('input');
+ input.type=key==='description'?'text':'number';input.value=r[key];input.setAttribute('aria-label',({description:'Attività',quantity:'Quantità',price:'Prezzo unitario'}[key])+' '+(i+1));
+ if(key!=='description'){input.min='0';input.max='10000000';input.step=key==='price'?'0.01':'0.1'}
+ input.addEventListener('input',()=>{r[key]=key==='description'?input.value:safeNumber(input.value);render()});td.append(input);tr.append(td);
+ }
+ const amount=document.createElement('td');amount.dataset.amount='';tr.append(amount);
+ const td=document.createElement('td');td.className='no-print';const remove=document.createElement('button');remove.textContent='×';remove.className='remove';remove.setAttribute('aria-label','Rimuovi attività '+(i+1));remove.onclick=()=>{rows.splice(i,1);renderRows()};td.append(remove);tr.append(td);el('items').append(tr);
+ });render();
+}
+fields.forEach(id=>el(id).addEventListener('input',render));
+el('add').onclick=()=>{rows.push({description:'',quantity:1,price:0});renderRows()};
+function snapshot(){return {version:1,fields:Object.fromEntries(fields.map(id=>[id,el(id).value])),rows}}
+el('save').onclick=()=>{try{localStorage.setItem('graftholders-proposal-v1',JSON.stringify(snapshot()));el('status').textContent='Bozza salvata in questo browser.'}catch{el('status').textContent='Salvataggio non disponibile. Usa Esporta JSON.'}};
+el('print').onclick=()=>window.print();
+el('export').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(snapshot(),null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='proposta.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+el('reset').onclick=()=>{if(!confirm('Creare una nuova proposta? La bozza salvata resta disponibile finché non la sovrascrivi.'))return;for(const id of fields)el(id).value=({sender:'GRAFTHOLDERS',title:'Proposta di collaborazione',number:'PROP-001',date:today(),valid:'30',vat:'22'}[id]||'');rows=[{description:'',quantity:1,price:0}];renderRows();el('status').textContent='Nuova proposta pronta.'};
+try{const saved=JSON.parse(localStorage.getItem('graftholders-proposal-v1')||'null');if(saved&&saved.version===1&&saved.fields&&Array.isArray(saved.rows)){for(const id of fields)if(typeof saved.fields[id]==='string')el(id).value=saved.fields[id];rows=saved.rows.slice(0,200).map(r=>({description:String(r.description||''),quantity:safeNumber(r.quantity),price:safeNumber(r.price)}));el('status').textContent='Bozza precedente ripristinata.'}}catch{el('status').textContent='Bozza non disponibile. Puoi creare una nuova proposta.'}
+renderRows();
+</script></body></html>
