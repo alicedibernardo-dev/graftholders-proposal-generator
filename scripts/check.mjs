@@ -1,0 +1,14 @@
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const html=readFileSync('public/index.html','utf8');
+const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
+new vm.Script(script);
+const calc=script.match(/function totals\(items,vat\)\{[^\n]+\}/)[0];
+const context=vm.createContext({});
+vm.runInContext("const safeNumber=(v,max=10000000)=>Math.min(max,Math.max(0,Number(v)||0));"+calc,context);
+const result=vm.runInContext('totals([{quantity:2,price:100},{quantity:1,price:0.1}],22)',context);
+assert.equal(result.subtotal,200.1);assert.equal(result.tax,44.02);assert.equal(result.total,244.12);
+assert.equal(vm.runInContext('totals([{quantity:-1,price:100}],22).total',context),0);
+JSON.parse(readFileSync('wrangler.jsonc','utf8'));
+console.log('OK: JavaScript, configurazione Cloudflare e calcolo importi/IVA.');
